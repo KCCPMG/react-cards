@@ -6,58 +6,72 @@ import './CardWrapper.css';
 function AutoCardsWrapper() {
   const [deckId, setDeckId] = useState(null);
   const [currentCard, setCurrentCard] = useState({});
-  const [nextCard, setNextCard] = useState({})
   const [done, setDone] = useState(false);
-  // const [remainingDeck, setRemainingDeck] = useState([])
+  const [drawing, setDrawing] = useState(false);
+  const [remainingDeck, setRemainingDeck] = useState([])
+  const [drawTimer, setDrawTimer] = useState(null);
 
-
-  function drawCard() {
-    setCurrentCard(nextCard);
-    setNextCard({});
-    axios.get(`https://deckofcardsapi.com/api/deck/${deckId}/draw`)
-    .then(res => {
-      if (res.data.success) {
-        if (res.data.cards[0]) {
-          setNextCard({
-            ...res.data.cards[0]
-          })
-        } else {
-          setNextCard({});
-        }
-      } else {
-        setDone(true);
-      }
-    })
-  }
-
-  // after component load
+  // after component load, draw entire deck
   useEffect(function() {
     // load deck
     const loadDeck = async () => {
       const deckRes = await axios.get("https://deckofcardsapi.com/api/deck/new/shuffle/?deck_count=1")
       if (deckRes.data.success) {
         setDeckId(deckRes.data.deck_id);
-        const cardRes = await axios.get(`https://deckofcardsapi.com/api/deck/${deckRes.data.deck_id}/draw`);
+        const cardRes = await axios.get(`https://deckofcardsapi.com/api/deck/${deckRes.data.deck_id}/draw/?count=52`);
         if (cardRes.data.success) {
-          setNextCard({
-            ...cardRes.data.cards[0]
-          })
+          setRemainingDeck(cardRes.data.cards)
         }
       }
     }
     loadDeck();
   }, [])
 
+
+  useEffect(function(){
+    if (drawing) {
+      // let now = new Date(); // for testing timing
+      setDrawTimer(setInterval(function(){
+        // let then = now; // for testing timing
+        // now = new Date(); // for testing timing
+        // console.log(now, then, now-then); // for testing timing
+        setRemainingDeck(() => {
+          if (remainingDeck.length === 0) {
+            setDrawing(false);
+            setDone(true);
+            return [];
+          } else {
+            setCurrentCard(remainingDeck.pop());
+            return remainingDeck;
+          }
+        });
+      }, 1000))
+    } else {
+      clearInterval(drawTimer);
+    }
+  }, [drawing, done])
+
+
+
   function drawCardButton() {
-    return (
-      <button onClick={drawCard}>Draw a Card</button>
-    )
+    if (remainingDeck.length > 0) {
+      if (drawing) {
+        return (
+          <button onClick={() => { setDrawing(false) }}>Stop Drawing</button>
+        ) 
+      } else {
+        return (
+          <button onClick={() => { setDrawing(true) }}>Draw Cards</button>
+        )
+      }
+    } else return undefined;
+    
   }
 
   return(
     <div className="CardsWrapper">
       <div className="CardWrapper-button-div">
-        {(Object.entries(nextCard).length > 0) ? drawCardButton() : undefined }
+        { drawCardButton() }
       </div>
       {(Object.entries(currentCard).length > 0)
         ? <Card image={currentCard.image} value={currentCard.value} suit={currentCard.suit} code={currentCard.code} /> 
@@ -67,4 +81,5 @@ function AutoCardsWrapper() {
     </div>
   )
 }
+
 export default AutoCardsWrapper;

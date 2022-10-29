@@ -8,7 +8,6 @@ function CardsWrapper() {
   const [currentCard, setCurrentCard] = useState({});
   const [nextCard, setNextCard] = useState({})
   const [done, setDone] = useState(false);
-  // const [remainingDeck, setRemainingDeck] = useState([])
 
 
   function drawCard() {
